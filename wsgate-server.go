@@ -33,7 +33,7 @@ var (
 )
 
 func handleHello(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("OK"))
+	w.Write([]byte("OK\n"))
 }
 
 func handleProxy(w http.ResponseWriter, r *http.Request) {
@@ -195,6 +195,7 @@ Compiler: %s %s
 
 	m := mux.NewRouter()
 	m.HandleFunc("/", handleHello)
+    m.HandleFunc("/live", handleHello)
 	m.HandleFunc("/proxy/{dest}", handleProxy)
 
 	l, err := ss.NewListener()
