@@ -43,21 +43,12 @@ func handleProxy(w http.ResponseWriter, r *http.Request) {
 	readLen := int64(0)
 	writeLen := int64(0)
 	hasError := false
-	defer func() {
-		status := "suceeded"
-		if hasError {
-			status = "failed"
-		}
-		log.Printf("status:%s dest:%s upstream:%s x-forwarded-for:%s remote_addr:%s read:%d write:%d",
-			status, proxyDest, upstream, r.Header.Get("X-Forwarded-For"),
-			r.RemoteAddr, readLen, writeLen)
-	}()
 
 	upstream, ok := mapping[proxyDest]
 	if !ok {
 		hasError = true
 		log.Printf("No map for '%s' found", proxyDest)
-		http.Error(w, fmt.Sprintf("Not found", proxyDest), 404)
+		http.Error(w, fmt.Sprintf("Not found: %s", proxyDest), 404)
 		return
 	}
 
@@ -76,6 +67,16 @@ func handleProxy(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Upgrade: %v", err)
 		return
 	}
+
+	defer func() {
+		status := "suceeded"
+		if hasError {
+			status = "failed"
+		}
+		log.Printf("status:%s dest:%s upstream:%s x-forwarded-for:%s remote_addr:%s read:%d write:%d",
+			status, proxyDest, upstream, r.Header.Get("X-Forwarded-For"),
+			r.RemoteAddr, readLen, writeLen)
+	}()
 
 	doneCh := make(chan bool)
 	goClose := false
@@ -119,17 +120,18 @@ func handleProxy(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		defer func() { doneCh <- true }()
 		for {
-			b := make([]byte, 32*1024)
+			b := make([]byte, 64*1024)
 			n, err := s.Read(b)
 			if err != nil {
-				if !goClose {
+				if !goClose && err != io.EOF {
 					log.Printf("Reading from dest: %v", err)
 					hasError = true
 				}
 				return
-			} else {
-				b = b[:n]
 			}
+
+			b = b[:n]
+
 			if err := conn.WriteMessage(websocket.BinaryMessage, b); err != nil {
 				if !goClose {
 					log.Printf("WriteMessage: %v", err)
@@ -195,7 +197,7 @@ Compiler: %s %s
 
 	m := mux.NewRouter()
 	m.HandleFunc("/", handleHello)
-    m.HandleFunc("/live", handleHello)
+	m.HandleFunc("/live", handleHello)
 	m.HandleFunc("/proxy/{dest}", handleProxy)
 
 	l, err := ss.NewListener()
