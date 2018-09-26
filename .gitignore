@@ -24,6 +24,6 @@ _testmain.go
 *.prof
 
 wsgate-server
-eg/client
+eg/
 vendor/
 *~
