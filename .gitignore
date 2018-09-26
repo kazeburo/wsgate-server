@@ -26,4 +26,5 @@ _testmain.go
 wsgate-server
 eg/
 vendor/
+dist/
 *~
