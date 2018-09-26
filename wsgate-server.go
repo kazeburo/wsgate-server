@@ -2,9 +2,11 @@ package main
 
 import (
 	"bufio"
+	"crypto/rsa"
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -14,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	ss "github.com/lestrrat/go-server-starter-listener"
@@ -28,8 +31,11 @@ var (
 	writeTimeout     = flag.Duration("write_timeout", 10*time.Second, "Write timeout.")
 	showVersion      = flag.Bool("version", false, "show version")
 	mapFile          = flag.String("map", "", "path and proxy host mapping file")
-	upgrader         websocket.Upgrader
-	mapping          map[string]string
+	publicKeyFile    = flag.String("public-key", "", "public key for signing auth header")
+
+	upgrader  websocket.Upgrader
+	mapping   map[string]string
+	verifyKey *rsa.PublicKey
 )
 
 func handleHello(w http.ResponseWriter, r *http.Request) {
@@ -44,6 +50,31 @@ func handleProxy(w http.ResponseWriter, r *http.Request) {
 	writeLen := int64(0)
 	hasError := false
 
+	if *publicKeyFile != "" {
+		tokenString := r.Header.Get("Authorization")
+		if tokenString == "" {
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+			return
+		}
+		tokenString = strings.TrimPrefix(tokenString, "Bearer ")
+		claims := &jwt.StandardClaims{}
+		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+			return verifyKey, nil
+		})
+
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Token is invalid: %v", err), http.StatusUnauthorized)
+			return
+		}
+		if !token.Valid {
+			http.Error(w, fmt.Sprintf("Token is invalid"), http.StatusUnauthorized)
+			return
+		}
+		if claims.Valid() != nil {
+			http.Error(w, fmt.Sprintf("Invalid claims: %v", claims.Valid()), http.StatusUnauthorized)
+			return
+		}
+	}
 	upstream, ok := mapping[proxyDest]
 	if !ok {
 		hasError = true
@@ -69,9 +100,9 @@ func handleProxy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer func() {
-		status := "suceeded"
+		status := "Suceeded"
 		if hasError {
-			status = "failed"
+			status = "Failed"
 		}
 		log.Printf("status:%s dest:%s upstream:%s x-forwarded-for:%s remote_addr:%s read:%d write:%d",
 			status, proxyDest, upstream, r.Header.Get("X-Forwarded-For"),
@@ -183,6 +214,17 @@ Compiler: %s %s
 			}
 			log.Printf("Create map: %s => %s", l[0], l[1])
 			mapping[l[0]] = l[1]
+		}
+	}
+
+	if *publicKeyFile != "" {
+		verifyBytes, err := ioutil.ReadFile(*publicKeyFile)
+		if err != nil {
+			log.Fatalf("Failed read pubkey: %v", err)
+		}
+		verifyKey, err = jwt.ParseRSAPublicKeyFromPEM(verifyBytes)
+		if err != nil {
+			log.Fatalf("Failed read pubkey: %v", err)
 		}
 	}
 
