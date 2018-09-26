@@ -186,7 +186,7 @@ func main() {
 	flag.Parse()
 
 	if *showVersion {
-		fmt.Printf(`anondb-wsgate %s
+		fmt.Printf(`wsgate-server %s
 Compiler: %s %s
 `,
 			Version,

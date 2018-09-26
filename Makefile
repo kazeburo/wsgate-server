@@ -26,4 +26,4 @@ tag:
 	git tag v${VERSION}
 	git push origin v${VERSION}
 	git push origin master
-	LDFLAGS='-ldflags "-X main.Version=${VERSION}"' goreleaser --rm-dist
+	goreleaser --rm-dist
