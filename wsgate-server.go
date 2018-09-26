@@ -95,9 +95,12 @@ func handleProxy(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		hasError = true
 		s.Close()
-		log.Printf("Upgrade: %v", err)
+		log.Printf("Failed to Upgrade: %v", err)
 		return
 	}
+	log.Printf("status:Connected dest:%s upstream:%s x-forwarded-for:%s remote_addr:%s",
+		proxyDest, upstream, r.Header.Get("X-Forwarded-For"),
+		r.RemoteAddr)
 
 	defer func() {
 		status := "Suceeded"
