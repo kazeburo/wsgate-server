@@ -49,6 +49,7 @@ func handleProxy(w http.ResponseWriter, r *http.Request) {
 	readLen := int64(0)
 	writeLen := int64(0)
 	hasError := false
+	disconnectAt := ""
 
 	if *publicKeyFile != "" {
 		tokenString := r.Header.Get("Authorization")
@@ -84,6 +85,7 @@ func handleProxy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s, err := net.DialTimeout("tcp", upstream, *dialTimeout)
+
 	if err != nil {
 		hasError = true
 		log.Printf("DialTimeout: %v", err)
@@ -107,9 +109,9 @@ func handleProxy(w http.ResponseWriter, r *http.Request) {
 		if hasError {
 			status = "Failed"
 		}
-		log.Printf("status:%s dest:%s upstream:%s x-forwarded-for:%s remote_addr:%s read:%d write:%d",
+		log.Printf("status:%s dest:%s upstream:%s x-forwarded-for:%s remote_addr:%s read:%d write:%d disconnect_at:%s",
 			status, proxyDest, upstream, r.Header.Get("X-Forwarded-For"),
-			r.RemoteAddr, readLen, writeLen)
+			r.RemoteAddr, readLen, writeLen, disconnectAt)
 	}()
 
 	doneCh := make(chan bool)
@@ -131,6 +133,9 @@ func handleProxy(w http.ResponseWriter, r *http.Request) {
 					log.Printf("NextReader: %v", err)
 					hasError = true
 				}
+				if disconnectAt == "" {
+					disconnectAt = "client_nextreader"
+				}
 				return
 			}
 			if mt != websocket.BinaryMessage {
@@ -143,6 +148,9 @@ func handleProxy(w http.ResponseWriter, r *http.Request) {
 				if !goClose {
 					log.Printf("Reading from websocket: %v", err)
 					hasError = true
+				}
+				if disconnectAt == "" {
+					disconnectAt = "client_upstream_copy"
 				}
 				return
 			}
@@ -161,6 +169,9 @@ func handleProxy(w http.ResponseWriter, r *http.Request) {
 					log.Printf("Reading from dest: %v", err)
 					hasError = true
 				}
+				if disconnectAt == "" {
+					disconnectAt = "upstream_read"
+				}
 				return
 			}
 
@@ -170,6 +181,9 @@ func handleProxy(w http.ResponseWriter, r *http.Request) {
 				if !goClose {
 					log.Printf("WriteMessage: %v", err)
 					hasError = true
+				}
+				if disconnectAt == "" {
+					disconnectAt = "client_write"
 				}
 				return
 			}
