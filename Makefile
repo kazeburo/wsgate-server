@@ -1,4 +1,4 @@
-VERSION=0.1.0
+VERSION=0.1.1
 LDFLAGS=-ldflags "-X main.Version=${VERSION}"
 all: wsgate-server
 
