@@ -12,6 +12,7 @@ import (
 	"github.com/kazeburo/wsgate-server/dumper"
 	"github.com/kazeburo/wsgate-server/mapping"
 	"github.com/kazeburo/wsgate-server/publickey"
+	"github.com/kazeburo/wsgate-server/seq"
 	"go.uber.org/zap"
 )
 
@@ -30,6 +31,7 @@ type Handler struct {
 	mp           *mapping.Mapping
 	pk           *publickey.Publickey
 	dumpTCP      uint
+	sq           *seq.Seq
 }
 
 // New new handler
@@ -59,6 +61,7 @@ func New(
 		mp:           mp,
 		pk:           pk,
 		dumpTCP:      dumpTCP,
+		sq:           seq.New(),
 	}, nil
 }
 
@@ -81,6 +84,7 @@ func (h *Handler) Proxy() func(w http.ResponseWriter, r *http.Request) {
 		disconnectAt := ""
 
 		logger := h.logger.With(
+			zap.Uint64("seq", h.sq.Next()),
 			zap.String("user-email", r.Header.Get("X-Goog-Authenticated-User-Email")),
 			zap.String("x-forwarded-for", r.Header.Get("X-Forwarded-For")),
 			zap.String("remote-addr", r.RemoteAddr),
@@ -148,6 +152,8 @@ func (h *Handler) Proxy() func(w http.ResponseWriter, r *http.Request) {
 			for {
 				select {
 				case <-r.Context().Done():
+					dr.Flush()
+					ds.Flush()
 					return
 				case _ = <-ticker.C:
 					dr.Flush()
