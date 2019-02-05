@@ -9,9 +9,16 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
+	"github.com/kazeburo/wsgate-server/dumper"
 	"github.com/kazeburo/wsgate-server/mapping"
 	"github.com/kazeburo/wsgate-server/publickey"
 	"go.uber.org/zap"
+)
+
+var (
+	websocketUpstream   uint          = 1
+	upstreamWebsocket   uint          = 2
+	flushDumperInterval time.Duration = 300
 )
 
 // Handler handlers
@@ -22,6 +29,7 @@ type Handler struct {
 	writeTimeout time.Duration
 	mp           *mapping.Mapping
 	pk           *publickey.Publickey
+	dumpTCP      uint
 }
 
 // New new handler
@@ -31,6 +39,7 @@ func New(
 	writeTimeout time.Duration,
 	mp *mapping.Mapping,
 	pk *publickey.Publickey,
+	dumpTCP uint,
 	logger *zap.Logger) (*Handler, error) {
 
 	upgrader := websocket.Upgrader{
@@ -49,6 +58,7 @@ func New(
 		writeTimeout: writeTimeout,
 		mp:           mp,
 		pk:           pk,
+		dumpTCP:      dumpTCP,
 	}, nil
 }
 
@@ -114,8 +124,12 @@ func (h *Handler) Proxy() func(w http.ResponseWriter, r *http.Request) {
 		}
 
 		logger.Info("log", zap.String("status", "Connected"))
+		dr := dumper.New(websocketUpstream, logger)
+		ds := dumper.New(upstreamWebsocket, logger)
 
 		defer func() {
+			dr.Flush()
+			ds.Flush()
 			status := "Suceeded"
 			if hasError {
 				status = "Failed"
@@ -126,6 +140,20 @@ func (h *Handler) Proxy() func(w http.ResponseWriter, r *http.Request) {
 				zap.Int64("write", writeLen),
 				zap.String("disconnect_at", disconnectAt),
 			)
+		}()
+
+		ticker := time.NewTicker(flushDumperInterval * time.Millisecond)
+		defer ticker.Stop()
+		go func() {
+			for {
+				select {
+				case <-r.Context().Done():
+					return
+				case _ = <-ticker.C:
+					dr.Flush()
+					ds.Flush()
+				}
+			}
 		}()
 
 		doneCh := make(chan bool)
@@ -156,6 +184,9 @@ func (h *Handler) Proxy() func(w http.ResponseWriter, r *http.Request) {
 					logger.Warn("BinaryMessage required", zap.Int("messageType", mt))
 					hasError = true
 					return
+				}
+				if h.dumpTCP > 0 {
+					r = io.TeeReader(r, dr)
 				}
 				n, err := io.Copy(s, r)
 				if err != nil {
@@ -190,7 +221,9 @@ func (h *Handler) Proxy() func(w http.ResponseWriter, r *http.Request) {
 				}
 
 				b = b[:n]
-
+				if h.dumpTCP > 1 {
+					ds.Write(b)
+				}
 				if err := conn.WriteMessage(websocket.BinaryMessage, b); err != nil {
 					if !goClose {
 						logger.Warn("WriteMessage", zap.Error(err))

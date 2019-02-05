@@ -42,6 +42,14 @@
   revision = "00dd68592c85334ce94a28199ec7961352c0ba6d"
 
 [[projects]]
+  digest = "1:1d7e1867c49a6dd9856598ef7c3123604ea3daabf5b83f303ff457bcbc410b1d"
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  pruneopts = ""
+  revision = "ba968bfe8b2f7e042a574c888954fccecfa385b4"
+  version = "v0.8.1"
+
+[[projects]]
   digest = "1:74f86c458e82e1c4efbab95233e0cf51b7cc02dc03193be9f62cd81224e10401"
   name = "go.uber.org/atomic"
   packages = ["."]
@@ -97,6 +105,7 @@
     "github.com/gorilla/mux",
     "github.com/gorilla/websocket",
     "github.com/lestrrat/go-server-starter-listener",
+    "github.com/pkg/errors",
     "go.uber.org/zap",
     "golang.org/x/net/websocket",
   ]
