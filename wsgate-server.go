@@ -26,6 +26,7 @@ var (
 	writeTimeout     = flag.Duration("write_timeout", 10*time.Second, "Write timeout.")
 	mapFile          = flag.String("map", "", "path and proxy host mapping file")
 	publicKeyFile    = flag.String("public-key", "", "public key for signing auth header")
+	dumpTCP          = flag.Uint("dump-tcp", 0, "Dump TCP. 0 = disable, 1 = src to dest, 2 = both")
 )
 
 func printVersion() {
@@ -62,6 +63,7 @@ func main() {
 		*writeTimeout,
 		mp,
 		pk,
+		*dumpTCP,
 		logger,
 	)
 	if err != nil {
