@@ -48,18 +48,17 @@ func (pk Publickey) Verify(t string) (bool, error) {
 	}
 	t = strings.TrimPrefix(t, "Bearer ")
 	claims := &jwt.StandardClaims{}
-	token, err := jwt.ParseWithClaims(t, claims, func(token *jwt.Token) (interface{}, error) {
+	jwp := &jwt.Parser{
+		ValidMethods:         []string{"RS256", "RS384", "RS512"},
+		SkipClaimsValidation: false,
+	}
+	_, err := jwp.ParseWithClaims(t, claims, func(token *jwt.Token) (interface{}, error) {
 		return pk.verifyKey, nil
 	})
 
 	if err != nil {
 		return false, fmt.Errorf("Token is invalid: %v", err)
 	}
-	if !token.Valid {
-		return false, fmt.Errorf("Token is invalid")
-	}
-	if claims.Valid() != nil {
-		return false, fmt.Errorf("Invalid claims: %v", claims.Valid())
-	}
+
 	return true, nil
 }
