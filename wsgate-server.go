@@ -1,11 +1,16 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"net"
 	"net/http"
+	"os"
+	"os/signal"
 	"runtime"
+	"sync"
+	"syscall"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -24,6 +29,7 @@ var (
 	handshakeTimeout = flag.Duration("handshake_timeout", 10*time.Second, "Handshake timeout.")
 	dialTimeout      = flag.Duration("dial_timeout", 10*time.Second, "Dial timeout.")
 	writeTimeout     = flag.Duration("write_timeout", 10*time.Second, "Write timeout.")
+	shutdownTimeout  = flag.Duration("shutdown_timeout", 86400*time.Second, "timeout to wait for all connections to be closed")
 	mapFile          = flag.String("map", "", "path and proxy host mapping file")
 	publicKeyFile    = flag.String("public-key", "", "public key for signing auth header")
 	dumpTCP          = flag.Uint("dump-tcp", 0, "Dump TCP. 0 = disable, 1 = src to dest, 2 = both")
@@ -70,10 +76,49 @@ func main() {
 		logger.Fatal("Failed init handler", zap.Error(err))
 	}
 
+	wg := &sync.WaitGroup{}
+	defer func() {
+		c := make(chan struct{})
+		go func() {
+			defer close(c)
+			wg.Wait()
+		}()
+		select {
+		case <-c:
+			logger.Info("All connections closed. Shutdown")
+			return
+		case <-time.After(*shutdownTimeout):
+			logger.Info("Timeout, close some connections. Shutdown")
+			return
+		}
+	}()
+
 	m := mux.NewRouter()
 	m.HandleFunc("/", proxyHandler.Hello())
 	m.HandleFunc("/live", proxyHandler.Hello())
-	m.HandleFunc("/proxy/{dest}", proxyHandler.Proxy())
+	m.HandleFunc("/proxy/{dest}", proxyHandler.Proxy(wg))
+
+	s := &http.Server{
+		Handler:        m,
+		ReadTimeout:    10 * time.Second,
+		WriteTimeout:   10 * time.Second,
+		MaxHeaderBytes: 1 << 20,
+	}
+
+	idleConnsClosed := make(chan struct{})
+	go func() {
+		sigChan := make(chan os.Signal, 1)
+		signal.Notify(sigChan, syscall.SIGTERM)
+		<-sigChan
+		logger.Info("Signal received. Start to shutdown")
+		ctx, cancel := context.WithTimeout(context.Background(), *shutdownTimeout)
+		if es := s.Shutdown(ctx); es != nil {
+			logger.Warn("Shutdown error", zap.Error(err))
+		}
+		cancel()
+		close(idleConnsClosed)
+		logger.Info("Waiting for all connections to be closed")
+	}()
 
 	l, err := ss.NewListener()
 	if l == nil || err != nil {
@@ -84,11 +129,9 @@ func main() {
 		}
 	}
 
-	s := &http.Server{
-		Handler:        m,
-		ReadTimeout:    10 * time.Second,
-		WriteTimeout:   10 * time.Second,
-		MaxHeaderBytes: 1 << 20,
+	if err := s.Serve(l); err != http.ErrServerClosed {
+		logger.Error("Error in Serve", zap.Error(err))
 	}
-	s.Serve(l)
+
+	<-idleConnsClosed
 }
