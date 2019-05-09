@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -73,8 +74,11 @@ func (h *Handler) Hello() func(w http.ResponseWriter, r *http.Request) {
 }
 
 // Proxy proxy handler
-func (h *Handler) Proxy() func(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) Proxy(wg *sync.WaitGroup) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		wg.Add(1)
+		defer wg.Done()
+
 		vars := mux.Vars(r)
 		proxyDest := vars["dest"]
 		upstream := ""
