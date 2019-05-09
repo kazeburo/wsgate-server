@@ -89,19 +89,22 @@ func (h *Handler) Proxy(wg *sync.WaitGroup) func(w http.ResponseWriter, r *http.
 
 		logger := h.logger.With(
 			zap.Uint64("seq", h.sq.Next()),
-			zap.String("user-email", r.Header.Get("X-Goog-Authenticated-User-Email")),
 			zap.String("x-forwarded-for", r.Header.Get("X-Forwarded-For")),
 			zap.String("remote-addr", r.RemoteAddr),
 			zap.String("destination", proxyDest),
 		)
 
 		if h.pk.Enabled() {
-			_, err := h.pk.Verify(r.Header.Get("Authorization"))
+			sub, err := h.pk.Verify(r.Header.Get("Authorization"))
 			if err != nil {
-				logger.Warn("No authorize", zap.Error(err))
+				logger.Warn("Failed to authorize", zap.Error(err))
 				http.Error(w, err.Error(), http.StatusUnauthorized)
 				return
 			}
+			logger = logger.With(zap.String("user-email", sub))
+
+		} else {
+			logger = logger.With(zap.String("user-email", r.Header.Get("X-Goog-Authenticated-User-Email")))
 		}
 
 		upstream, ok := h.mp.Get(proxyDest)

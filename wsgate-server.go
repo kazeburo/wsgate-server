@@ -31,7 +31,8 @@ var (
 	writeTimeout     = flag.Duration("write_timeout", 10*time.Second, "Write timeout.")
 	shutdownTimeout  = flag.Duration("shutdown_timeout", 86400*time.Second, "timeout to wait for all connections to be closed")
 	mapFile          = flag.String("map", "", "path and proxy host mapping file")
-	publicKeyFile    = flag.String("public-key", "", "public key for signing auth header")
+	publicKeyFile    = flag.String("public-key", "", "public key for verifying JWT auth header")
+	jwtFreshness     = flag.Duration("jwt-freshness", 3600*time.Second, "time in seconds to allow generated jwt tokens")
 	dumpTCP          = flag.Uint("dump-tcp", 0, "Dump TCP. 0 = disable, 1 = src to dest, 2 = both")
 )
 
@@ -58,7 +59,7 @@ func main() {
 		logger.Fatal("Failed init mapping", zap.Error(err))
 	}
 
-	pk, err := publickey.New(*publicKeyFile, logger)
+	pk, err := publickey.New(*publicKeyFile, *jwtFreshness, logger)
 	if err != nil {
 		logger.Fatal("Failed init publickey", zap.Error(err))
 	}
