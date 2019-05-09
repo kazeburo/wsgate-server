@@ -87,18 +87,24 @@ db, err := sql.Open("mysql", "yyyy:xxx@websocket(https://example.com/proxy/mysql
 
 ```
 Usage of ./wsgate-server:
--dial_timeout duration
-	  Dial timeout. (default 10s)
--handshake_timeout duration
-	  Handshake timeout. (default 10s)
--listen string
-	  Address to listen to. (default "127.0.0.1:8086")
--map string
-	  path and proxy host mapping file
--public-key string
-	  public key for signing auth header
--version
-	  show version
--write_timeout duration
-	  Write timeout. (default 10s)
+  -dial_timeout duration
+        Dial timeout. (default 10s)
+  -dump-tcp uint
+        Dump TCP. 0 = disable, 1 = src to dest, 2 = both
+  -handshake_timeout duration
+        Handshake timeout. (default 10s)
+  -jwt-freshness duration
+        time in seconds to allow generated jwt tokens (default 1h0m0s)
+  -listen string
+        Address to listen to. (default "127.0.0.1:8086")
+  -map string
+        path and proxy host mapping file
+  -public-key string
+        public key for verifying JWT auth header
+  -shutdown_timeout duration
+        timeout to wait for all connections to be closed (default 24h0m0s)
+  -version
+        show version
+  -write_timeout duration
+        Write timeout. (default 10s)
 ```
