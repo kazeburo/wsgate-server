@@ -114,7 +114,7 @@ func main() {
 		logger.Info("Signal received. Start to shutdown")
 		ctx, cancel := context.WithTimeout(context.Background(), *shutdownTimeout)
 		if es := s.Shutdown(ctx); es != nil {
-			logger.Warn("Shutdown error", zap.Error(err))
+			logger.Warn("Shutdown error", zap.Error(es))
 		}
 		cancel()
 		close(idleConnsClosed)
