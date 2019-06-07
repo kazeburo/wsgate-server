@@ -17,6 +17,9 @@ import (
 	"go.uber.org/zap"
 )
 
+// BufferSize for coybuffer and websocket
+const BufferSize = 256 * 1024
+
 var (
 	websocketUpstream   uint          = 1
 	upstreamWebsocket   uint          = 2
@@ -46,8 +49,8 @@ func New(
 	logger *zap.Logger) (*Handler, error) {
 
 	upgrader := websocket.Upgrader{
-		ReadBufferSize:   1024,
-		WriteBufferSize:  1024,
+		ReadBufferSize:   BufferSize,
+		WriteBufferSize:  BufferSize,
 		HandshakeTimeout: handshakeTimeout,
 		CheckOrigin: func(r *http.Request) bool {
 			return true
@@ -175,6 +178,7 @@ func (h *Handler) Proxy(wg *sync.WaitGroup) func(w http.ResponseWriter, r *http.
 		// websocket -> server
 		go func() {
 			defer func() { doneCh <- true }()
+			b := make([]byte, BufferSize)
 			for {
 				mt, r, err := conn.NextReader()
 				if websocket.IsCloseError(err,
@@ -201,7 +205,7 @@ func (h *Handler) Proxy(wg *sync.WaitGroup) func(w http.ResponseWriter, r *http.
 				if h.dumpTCP > 0 {
 					r = io.TeeReader(r, dr)
 				}
-				n, err := io.Copy(s, r)
+				n, err := io.CopyBuffer(s, r, b)
 				if err != nil {
 					if !goClose {
 						logger.Warn("Reading from websocket", zap.Error(err))
@@ -219,8 +223,8 @@ func (h *Handler) Proxy(wg *sync.WaitGroup) func(w http.ResponseWriter, r *http.
 		// server -> websocket
 		go func() {
 			defer func() { doneCh <- true }()
+			b := make([]byte, BufferSize)
 			for {
-				b := make([]byte, 64*1024)
 				n, err := s.Read(b)
 				if err != nil {
 					if !goClose && err != io.EOF {
@@ -233,11 +237,10 @@ func (h *Handler) Proxy(wg *sync.WaitGroup) func(w http.ResponseWriter, r *http.
 					return
 				}
 
-				b = b[:n]
 				if h.dumpTCP > 1 {
 					ds.Write(b)
 				}
-				if err := conn.WriteMessage(websocket.BinaryMessage, b); err != nil {
+				if err := conn.WriteMessage(websocket.BinaryMessage, b[:n]); err != nil {
 					if !goClose {
 						logger.Warn("WriteMessage", zap.Error(err))
 						hasError = true
