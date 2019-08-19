@@ -49,9 +49,10 @@ func New(
 	logger *zap.Logger) (*Handler, error) {
 
 	upgrader := websocket.Upgrader{
-		ReadBufferSize:   BufferSize,
-		WriteBufferSize:  BufferSize,
-		HandshakeTimeout: handshakeTimeout,
+		EnableCompression: true,
+		ReadBufferSize:    BufferSize,
+		WriteBufferSize:   BufferSize,
+		HandshakeTimeout:  handshakeTimeout,
 		CheckOrigin: func(r *http.Request) bool {
 			return true
 		},
