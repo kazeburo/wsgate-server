@@ -28,14 +28,15 @@ var (
 
 // Handler handlers
 type Handler struct {
-	logger       *zap.Logger
-	upgrader     websocket.Upgrader
-	dialTimeout  time.Duration
-	writeTimeout time.Duration
-	mp           *mapping.Mapping
-	pk           *publickey.Publickey
-	dumpTCP      uint
-	sq           *seq.Seq
+	logger            *zap.Logger
+	upgrader          websocket.Upgrader
+	dialTimeout       time.Duration
+	writeTimeout      time.Duration
+	enableCompression bool
+	mp                *mapping.Mapping
+	pk                *publickey.Publickey
+	dumpTCP           uint
+	sq                *seq.Seq
 }
 
 // New new handler
@@ -43,15 +44,17 @@ func New(
 	handshakeTimeout time.Duration,
 	dialTimeout time.Duration,
 	writeTimeout time.Duration,
+	enableCompression bool,
 	mp *mapping.Mapping,
 	pk *publickey.Publickey,
 	dumpTCP uint,
 	logger *zap.Logger) (*Handler, error) {
 
 	upgrader := websocket.Upgrader{
-		ReadBufferSize:   BufferSize,
-		WriteBufferSize:  BufferSize,
-		HandshakeTimeout: handshakeTimeout,
+		EnableCompression: enableCompression,
+		ReadBufferSize:    BufferSize,
+		WriteBufferSize:   BufferSize,
+		HandshakeTimeout:  handshakeTimeout,
 		CheckOrigin: func(r *http.Request) bool {
 			return true
 		},

@@ -23,17 +23,18 @@ import (
 
 var (
 	// Version wsgate-server version
-	Version          string
-	showVersion      = flag.Bool("version", false, "show version")
-	listen           = flag.String("listen", "127.0.0.1:8086", "Address to listen to.")
-	handshakeTimeout = flag.Duration("handshake_timeout", 10*time.Second, "Handshake timeout.")
-	dialTimeout      = flag.Duration("dial_timeout", 10*time.Second, "Dial timeout.")
-	writeTimeout     = flag.Duration("write_timeout", 10*time.Second, "Write timeout.")
-	shutdownTimeout  = flag.Duration("shutdown_timeout", 86400*time.Second, "timeout to wait for all connections to be closed")
-	mapFile          = flag.String("map", "", "path and proxy host mapping file")
-	publicKeyFile    = flag.String("public-key", "", "public key for verifying JWT auth header")
-	jwtFreshness     = flag.Duration("jwt-freshness", 3600*time.Second, "time in seconds to allow generated jwt tokens")
-	dumpTCP          = flag.Uint("dump-tcp", 0, "Dump TCP. 0 = disable, 1 = src to dest, 2 = both")
+	Version           string
+	showVersion       = flag.Bool("version", false, "Show version")
+	listen            = flag.String("listen", "127.0.0.1:8086", "Address to listen to")
+	handshakeTimeout  = flag.Duration("handshake_timeout", 10*time.Second, "Handshake timeout")
+	dialTimeout       = flag.Duration("dial_timeout", 10*time.Second, "Dial timeout")
+	writeTimeout      = flag.Duration("write_timeout", 10*time.Second, "Write timeout")
+	shutdownTimeout   = flag.Duration("shutdown_timeout", 86400*time.Second, "Timeout to wait for all connections to be closed")
+	enableCompression = flag.Bool("enable_compression", false, "To enable WebSocket Per-Message Compression Extensions (RFC 7692)")
+	mapFile           = flag.String("map", "", "Path and proxy host mapping file")
+	publicKeyFile     = flag.String("public-key", "", "Public key for verifying JWT auth header")
+	jwtFreshness      = flag.Duration("jwt-freshness", 3600*time.Second, "Time in seconds to allow generated jwt tokens")
+	dumpTCP           = flag.Uint("dump-tcp", 0, "Dump TCP. 0 = disable, 1 = src to dest, 2 = both")
 )
 
 func printVersion() {
@@ -68,6 +69,7 @@ func main() {
 		*handshakeTimeout,
 		*dialTimeout,
 		*writeTimeout,
+		*enableCompression,
 		mp,
 		pk,
 		*dumpTCP,
