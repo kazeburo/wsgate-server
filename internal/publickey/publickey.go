@@ -25,11 +25,11 @@ func New(publicKeyFile string, freshnessTime time.Duration, logger *zap.Logger) 
 	if publicKeyFile != "" {
 		verifyBytes, err := os.ReadFile(publicKeyFile)
 		if err != nil {
-			return nil, errors.Wrap(err, "Failed read pubkey")
+			return nil, errors.Wrap(err, "failed read pubkey")
 		}
 		verifyKey, err = jwt.ParseRSAPublicKeyFromPEM(verifyBytes)
 		if err != nil {
-			return nil, errors.Wrap(err, "Failed parse pubkey")
+			return nil, errors.Wrap(err, "failed parse pubkey")
 		}
 	}
 	return &Publickey{
