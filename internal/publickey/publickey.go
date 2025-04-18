@@ -3,7 +3,7 @@ package publickey
 import (
 	"crypto/rsa"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 	"time"
 
@@ -23,13 +23,13 @@ type Publickey struct {
 func New(publicKeyFile string, freshnessTime time.Duration, logger *zap.Logger) (*Publickey, error) {
 	var verifyKey *rsa.PublicKey
 	if publicKeyFile != "" {
-		verifyBytes, err := ioutil.ReadFile(publicKeyFile)
+		verifyBytes, err := os.ReadFile(publicKeyFile)
 		if err != nil {
-			return nil, errors.Wrap(err, "Failed read pubkey")
+			return nil, errors.Wrap(err, "failed read pubkey")
 		}
 		verifyKey, err = jwt.ParseRSAPublicKeyFromPEM(verifyBytes)
 		if err != nil {
-			return nil, errors.Wrap(err, "Failed parse pubkey")
+			return nil, errors.Wrap(err, "failed parse pubkey")
 		}
 	}
 	return &Publickey{
@@ -60,16 +60,16 @@ func (pk Publickey) Verify(t string) (string, error) {
 	})
 
 	if err != nil {
-		return "", fmt.Errorf("Token is invalid: %v", err)
+		return "", fmt.Errorf("token is invalid: %v", err)
 	}
 
 	now := time.Now()
 	iat := now.Add(-pk.freshnessTime)
 	if claims.ExpiresAt == 0 || claims.ExpiresAt < now.Unix() {
-		return "", fmt.Errorf("Token is expired")
+		return "", fmt.Errorf("token is expired")
 	}
 	if claims.IssuedAt == 0 || claims.IssuedAt < iat.Unix() {
-		return "", fmt.Errorf("Token is too old")
+		return "", fmt.Errorf("token is too old")
 	}
 
 	return claims.Subject, nil

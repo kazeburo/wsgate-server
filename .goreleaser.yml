@@ -1,15 +1,20 @@
 builds:
   - binary: wsgate-server
+    main: ./cmd/wsgate-server/main.go
     goos:
       - darwin
       - linux
     goarch:
       - amd64
-    ldflags:
-     - -X main.Version={{.Version}}
-archive:
-  format: zip
-  name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+      - arm64
+    ignore:
+      - goos: darwin
+        goarch: arm64
+    env:
+      - CGO_ENABLED=0
+archives:
+  - format: zip
+    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
 release:
   github:
     owner: kazeburo

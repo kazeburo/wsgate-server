@@ -23,7 +23,7 @@ _testmain.go
 *.test
 *.prof
 
-wsgate-server
+/wsgate-server
 eg/
 vendor/
 dist/
