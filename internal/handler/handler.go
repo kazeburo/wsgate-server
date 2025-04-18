@@ -10,10 +10,10 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
-	"github.com/kazeburo/wsgate-server/dumper"
-	"github.com/kazeburo/wsgate-server/mapping"
-	"github.com/kazeburo/wsgate-server/publickey"
-	"github.com/kazeburo/wsgate-server/seq"
+	"github.com/kazeburo/wsgate-server/internal/dumper"
+	"github.com/kazeburo/wsgate-server/internal/mapping"
+	"github.com/kazeburo/wsgate-server/internal/publickey"
+	"github.com/kazeburo/wsgate-server/internal/seq"
 	"go.uber.org/zap"
 )
 

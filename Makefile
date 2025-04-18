@@ -4,11 +4,14 @@ all: wsgate-server
 
 .PHONY: wsgate-server
 
-wsgate-server: wsgate-server.go
-	go build $(LDFLAGS) -o wsgate-server
+wsgate-server: cmd/wsgate-server/main.go
+	go build $(LDFLAGS) -o wsgate-server cmd/wsgate-server/main.go
 
-linux: wsgate-server.go
-	GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o wsgate-server
+linux: cmd/wsgate-server/main.go
+	GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o wsgate-server cmd/wsgate-server/main.go
+
+check:
+	go test ./...
 
 fmt:
 	go fmt ./...

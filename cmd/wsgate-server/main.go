@@ -14,9 +14,9 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/kazeburo/wsgate-server/handler"
-	"github.com/kazeburo/wsgate-server/mapping"
-	"github.com/kazeburo/wsgate-server/publickey"
+	"github.com/kazeburo/wsgate-server/internal/handler"
+	"github.com/kazeburo/wsgate-server/internal/mapping"
+	"github.com/kazeburo/wsgate-server/internal/publickey"
 	ss "github.com/lestrrat/go-server-starter-listener"
 	"go.uber.org/zap"
 )

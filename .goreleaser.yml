@@ -1,5 +1,6 @@
 builds:
   - binary: wsgate-server
+    main: ./cmd/wsgate-server/main.go
     goos:
       - darwin
       - linux
