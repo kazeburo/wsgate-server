@@ -45,6 +45,7 @@ Compiler: %s %s
 		runtime.Compiler,
 		runtime.Version())
 }
+
 func main() {
 	flag.Parse()
 

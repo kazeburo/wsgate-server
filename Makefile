@@ -1,14 +1,8 @@
 VERSION=0.4.0
-LDFLAGS=-ldflags "-X main.Version=${VERSION}"
+LDFLAGS=-ldflags "-w -s -X main.Version=${VERSION}"
 all: wsgate-server
 
 .PHONY: wsgate-server
-
-bundle:
-	dep ensure
-
-update:
-	dep ensure -update
 
 wsgate-server: wsgate-server.go
 	go build $(LDFLAGS) -o wsgate-server
@@ -22,8 +16,3 @@ fmt:
 clean:
 	rm -rf wsgate-server
 
-tag:
-	git tag v${VERSION}
-	git push origin v${VERSION}
-	git push origin master
-	goreleaser --rm-dist
