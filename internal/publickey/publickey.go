@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
@@ -50,14 +50,11 @@ func (pk Publickey) Verify(t string) (string, error) {
 		return "", fmt.Errorf("no tokenString")
 	}
 	t = strings.TrimPrefix(t, "Bearer ")
-	claims := &jwt.StandardClaims{}
-	jwp := &jwt.Parser{
-		ValidMethods:         []string{"RS256", "RS384", "RS512"},
-		SkipClaimsValidation: false,
-	}
-	_, err := jwp.ParseWithClaims(t, claims, func(token *jwt.Token) (interface{}, error) {
+
+	claims := &jwt.RegisteredClaims{}
+	_, err := jwt.ParseWithClaims(t, claims, func(token *jwt.Token) (interface{}, error) {
 		return pk.verifyKey, nil
-	})
+	}, jwt.WithValidMethods([]string{"RS256", "RS384", "RS512"}))
 
 	if err != nil {
 		return "", fmt.Errorf("token is invalid: %v", err)
@@ -65,10 +62,11 @@ func (pk Publickey) Verify(t string) (string, error) {
 
 	now := time.Now()
 	iat := now.Add(-pk.freshnessTime)
-	if claims.ExpiresAt == 0 || claims.ExpiresAt < now.Unix() {
+
+	if claims.ExpiresAt == nil || claims.ExpiresAt.Time.Before(now) {
 		return "", fmt.Errorf("token is expired")
 	}
-	if claims.IssuedAt == 0 || claims.IssuedAt < iat.Unix() {
+	if claims.IssuedAt == nil || claims.IssuedAt.Time.Before(iat) {
 		return "", fmt.Errorf("token is too old")
 	}
 
