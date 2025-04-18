@@ -20,7 +20,7 @@ func generateTestKeys() (privateKey *rsa.PrivateKey, publicKeyPEM []byte, err er
 		return nil, nil, err
 	}
 
-	publicKeyBytes := x509.MarshalPKCS1PublicKey(&privateKey.PublicKey)
+	publicKeyBytes, _ := x509.MarshalPKIXPublicKey(&privateKey.PublicKey)
 	publicKeyPEM = pem.EncodeToMemory(&pem.Block{
 		Type:  "RSA PUBLIC KEY",
 		Bytes: publicKeyBytes,
