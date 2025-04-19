@@ -73,8 +73,7 @@ func New(
 }
 
 func (h *Handler) GetSq() uint64 {
-	i := h.sq
-	return *i
+	return atomic.LoadUint64(h.sq)
 }
 
 // Hello hello handler
