@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -13,7 +14,6 @@ import (
 	"github.com/kazeburo/wsgate-server/internal/dumper"
 	"github.com/kazeburo/wsgate-server/internal/mapping"
 	"github.com/kazeburo/wsgate-server/internal/publickey"
-	"github.com/kazeburo/wsgate-server/internal/seq"
 	"go.uber.org/zap"
 )
 
@@ -28,15 +28,14 @@ var (
 
 // Handler handlers
 type Handler struct {
-	logger            *zap.Logger
-	upgrader          websocket.Upgrader
-	dialTimeout       time.Duration
-	writeTimeout      time.Duration
-	enableCompression bool
-	mp                *mapping.Mapping
-	pk                *publickey.Publickey
-	dumpTCP           uint
-	sq                *seq.Seq
+	logger       *zap.Logger
+	upgrader     websocket.Upgrader
+	dialTimeout  time.Duration
+	writeTimeout time.Duration
+	mp           *mapping.Mapping
+	pk           *publickey.Publickey
+	dumpTCP      uint
+	sq           *uint64
 }
 
 // New new handler
@@ -60,6 +59,7 @@ func New(
 		},
 	}
 
+	seq := uint64(0)
 	return &Handler{
 		logger:       logger,
 		upgrader:     upgrader,
@@ -68,8 +68,12 @@ func New(
 		mp:           mp,
 		pk:           pk,
 		dumpTCP:      dumpTCP,
-		sq:           seq.New(),
+		sq:           &seq,
 	}, nil
+}
+
+func (h *Handler) GetSq() uint64 {
+	return atomic.LoadUint64(h.sq)
 }
 
 // Hello hello handler
@@ -94,7 +98,7 @@ func (h *Handler) Proxy(wg *sync.WaitGroup) func(w http.ResponseWriter, r *http.
 		disconnectAt := ""
 
 		logger := h.logger.With(
-			zap.Uint64("seq", h.sq.Next()),
+			zap.Uint64("seq", atomic.AddUint64(h.sq, 1)),
 			zap.String("x-forwarded-for", r.Header.Get("X-Forwarded-For")),
 			zap.String("remote-addr", r.RemoteAddr),
 			zap.String("destination", proxyDest),
@@ -168,7 +172,7 @@ func (h *Handler) Proxy(wg *sync.WaitGroup) func(w http.ResponseWriter, r *http.
 					dr.Flush()
 					ds.Flush()
 					return
-				case _ = <-ticker.C:
+				case <-ticker.C:
 					dr.Flush()
 					ds.Flush()
 				}
