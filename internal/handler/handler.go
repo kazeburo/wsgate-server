@@ -72,6 +72,11 @@ func New(
 	}, nil
 }
 
+func (h *Handler) GetSq() uint64 {
+	i := h.sq
+	return *i
+}
+
 // Hello hello handler
 func (h *Handler) Hello() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {

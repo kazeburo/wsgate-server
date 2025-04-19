@@ -49,3 +49,8 @@ func (mp *Mapping) Get(proxyDest string) (string, bool) {
 	upstream, ok := mp.m[proxyDest]
 	return upstream, ok
 }
+
+// Set mapping
+func (mp *Mapping) Set(proxyDest string, upstream string) {
+	mp.m[proxyDest] = upstream
+}
