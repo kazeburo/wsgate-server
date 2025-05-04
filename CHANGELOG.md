@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.4.2](https://github.com/kazeburo/wsgate-server/compare/v0.4.1...v0.4.2) - 2025-05-04
+- fix goreleaser. use clean instead of rm-dist opt by @kazeburo in https://github.com/kazeburo/wsgate-server/pull/14
+
 ## [v0.4.1](https://github.com/kazeburo/wsgate-server/compare/v0.4.0...v0.4.1) - 2025-04-19
 - modernize packages by @kazeburo in https://github.com/kazeburo/wsgate-server/pull/9
 - add issue permission by @kazeburo in https://github.com/kazeburo/wsgate-server/pull/11
